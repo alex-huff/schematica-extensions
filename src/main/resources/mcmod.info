@@ -1,0 +1,18 @@
+[
+  {
+    "modid": "schematica_extensions",
+    "name": "Schematica Extensions",
+    "description": "Various extra features for Schematica",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "phonis"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": ["schematica"]
+  }
+]
