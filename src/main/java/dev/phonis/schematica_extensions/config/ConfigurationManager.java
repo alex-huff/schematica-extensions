@@ -25,7 +25,8 @@ public class ConfigurationManager
 
     private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT = new String[]{
         "sh", "-c",
-        "schematic_directory_path=$(realpath {directory}) && chosen_schematic_name=$(find \"$schematic_directory_path\" -type f -name \"*.schematic\" | xargs -d \"\\n\" realpath --relative-to \"$schematic_directory_path\" | sed \"s/\\(.*\\)\\.schematic$/\\1/\" | rofi -dmenu -i) && echo \"${schematic_directory_path}/${chosen_schematic_name}.schematic\""
+        "schematic_directory_path=$(realpath \"$1\") && chosen_schematic_name=$(find \"$schematic_directory_path\" -type f -name \"*.schematic\" | xargs -d \"\\n\" realpath --relative-to \"$schematic_directory_path\" | sed \"s/\\(.*\\)\\.schematic$/\\1/\" | rofi -dmenu -i -theme-str \"#window { width: 500; }\") && echo \"${schematic_directory_path}/${chosen_schematic_name}.schematic\"",
+        "_", "{directory}"
     };
     private final static int SCHEMATIC_MOVE_LARGE_INCREMENT_DEFAULT = 25;
     private final static int SCHEMATIC_MOVE_REFRESH_DELAY_DEFAULT = 1000;
