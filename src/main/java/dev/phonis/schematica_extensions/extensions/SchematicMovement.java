@@ -224,12 +224,12 @@ public class SchematicMovement
         this.moveCounter = Math.round(ConfigurationManager.INSTANCE.schematicMoveRefreshDelay / 50d);
     }
 
-    private boolean currentlyDragging()
+    private boolean currentlyPerformingMove()
     {
         return this.anchorPosition != null;
     }
 
-    private void resetDragState()
+    private void resetMoveState()
     {
         this.anchorPosition = null;
         this.schematicAnchor1BlockPos = null;
@@ -310,7 +310,7 @@ public class SchematicMovement
         boolean forward = dWheel > 0;
         int modifier = (sprintHeld ? ConfigurationManager.INSTANCE.schematicMoveLargeIncrement : 1) *
                        (forward ? 1 : -1);
-        if (this.currentlyDragging())
+        if (this.currentlyPerformingMove())
         {
             if (altHeld)
             {
@@ -345,7 +345,7 @@ public class SchematicMovement
         MBlockPos schematicWorldPosition = schematicWorld.position;
         float partialTicks = MinecraftUtil.getPartialTicks();
         Vec3 eyes = player.getPositionEyes(partialTicks);
-        if (!this.currentlyDragging())
+        if (!this.currentlyPerformingMove())
         {
             if (!altHeld)
             {
@@ -425,7 +425,7 @@ public class SchematicMovement
             }
             schematicWorldPosition.set(newOrigin);
         }
-        this.resetDragState();
+        this.resetMoveState();
         if (shouldPlaceSchematic)
         {
             RenderSchematic.INSTANCE.refresh();
@@ -465,7 +465,7 @@ public class SchematicMovement
             return;
         }
         MBlockPos schematicWorldPosition = schematicWorld.position;
-        if (!this.currentlyDragging())
+        if (!this.currentlyPerformingMove())
         {
             boolean altHeld = Keyboard.isKeyDown(Keyboard.KEY_LMENU);
             if (!altHeld)
@@ -568,7 +568,7 @@ public class SchematicMovement
     public void onFrame(TickEvent.RenderTickEvent event)
     {
         EntityPlayerSP player = this.minecraft.thePlayer;
-        if (!event.phase.equals(TickEvent.Phase.END) || !this.currentlyDragging() || player == null)
+        if (!event.phase.equals(TickEvent.Phase.END) || !this.currentlyPerformingMove() || player == null)
         {
             return;
         }
@@ -576,7 +576,7 @@ public class SchematicMovement
         SchematicWorld schematicWorld = ClientProxy.schematic;
         if (realWorld == null || schematicWorld == null)
         {
-            this.resetDragState();
+            this.resetMoveState();
             return;
         }
         if (!this.isSchematicTethered)
