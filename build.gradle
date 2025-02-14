@@ -12,6 +12,7 @@ repositories {
     maven { url = "https://repo.spongepowered.org/repository/maven-public/" }
     maven { url = "https://repo.spongepowered.org/maven/" }
     maven { url = "https://jitpack.io/" }
+    flatDir { dir "libs" }
 }
 
 archivesBaseName = project.archives_base_name
@@ -26,6 +27,7 @@ minecraft {
     runDir = "run"
     mappings = "stable_22"
     makeObfSourceJar = false
+    clientJvmArgs += ["-Dfml.coreMods.load=dev.phonis.schematica_extensions.mixins.MixinLoader", "-Xmx4096m", "-Xms1024m", "-Ddev-mode"]
 }
 
 configurations {
@@ -35,6 +37,8 @@ configurations {
 }
 
 dependencies {
+    deobfCompile group: "com.github.lunatrius", name: "LunatriusCore", version: "${project.version_minecraft}-${project.version_lunatriuscore}"
+    deobfCompile group: "com.github.lunatrius", name: "Schematica", version: "${project.version_minecraft}-${project.version_schematica}"
     include("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
         transitive = false
         exclude module: "guava"
@@ -45,7 +49,6 @@ dependencies {
         exclude module: "slf4j-api"
     }
     annotationProcessor("org.spongepowered:mixin:0.7.11-SNAPSHOT")
-    include fileTree(include: ["*.jar"], dir: "libs")
 }
 
 shadowJar {
@@ -107,9 +110,11 @@ reobf {
 
 jar.dependsOn("shadowJar")
 
+tasks.reobfShadowJar.mustRunAfter shadowJar
+
 task copyZipInclude(type: Copy) {
-    from 'zip_include/'
-    into 'build/libs/zip'
+    from "zip_include/"
+    into "build/libs/zip"
 }
 
 build.dependsOn copyZipInclude
