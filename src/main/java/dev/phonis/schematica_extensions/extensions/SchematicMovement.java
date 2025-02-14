@@ -10,7 +10,10 @@ import com.github.lunatrius.schematica.client.world.SchematicWorld;
 import com.github.lunatrius.schematica.proxy.ClientProxy;
 import dev.phonis.schematica_extensions.color.Color4f;
 import dev.phonis.schematica_extensions.config.ConfigurationManager;
-import dev.phonis.schematica_extensions.util.*;
+import dev.phonis.schematica_extensions.util.MinecraftUtil;
+import dev.phonis.schematica_extensions.util.RenderUtil;
+import dev.phonis.schematica_extensions.util.SchematicUtil;
+import dev.phonis.schematica_extensions.util.VecUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -18,7 +21,6 @@ import net.minecraft.util.*;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -135,88 +137,6 @@ public class SchematicMovement
                 }
             }
         }
-    }
-
-    private Pair<MovingObjectPosition, SchematicUtil.HitPositionWorld> rayTraceBlocks(WorldClient realWorld,
-                                                                                      SchematicWorld schematicWorld,
-                                                                                      EntityPlayerSP player)
-    {
-        float partialTicks = MinecraftUtil.getPartialTicks();
-        Vec3 eyes = player.getPositionEyes(partialTicks);
-        Vec3 look = player.getLook(partialTicks);
-        Vec3 reach = eyes.addVector(
-            look.xCoord * rayTraceDistance, look.yCoord * rayTraceDistance, look.zCoord * rayTraceDistance);
-        Optional<MovingObjectPosition> realHitPositionOptional = this.realRayTraceBlocks(realWorld, eyes, reach);
-        Optional<MovingObjectPosition> schematicHitPositionOptional
-            = this.schematicRayTraceBlocks(schematicWorld, eyes, reach);
-        MBlockPos schematicWorldPosition = schematicWorld.position;
-        double impossiblyFarSquaredDistance = rayTraceDistance * rayTraceDistance + 1;
-        boolean hitInRealWorld = realHitPositionOptional.map(this::rayTraceHitBlock).orElse(false);
-        boolean hitInSchematicWorld = schematicHitPositionOptional.map(this::rayTraceHitBlock).orElse(false);
-        double squaredDistanceToRealHitPosition = hitInRealWorld
-                                                  ? eyes.squareDistanceTo(realHitPositionOptional.get().hitVec)
-                                                  : impossiblyFarSquaredDistance;
-        double squaredDistanceToSchematicHitPosition = hitInSchematicWorld
-                                                       ? eyes.squareDistanceTo(schematicHitPositionOptional.get().hitVec.addVector(schematicWorldPosition.getX(), schematicWorldPosition.getY(), schematicWorldPosition.getZ()))
-                                                       : impossiblyFarSquaredDistance;
-        if (hitInRealWorld && hitInSchematicWorld && realHitPositionOptional.get().getBlockPos()
-            .equals(schematicHitPositionOptional.get().getBlockPos().add(schematicWorldPosition)) &&
-            MathUtil.epsilonEquals(squaredDistanceToRealHitPosition, squaredDistanceToSchematicHitPosition))
-        {
-            return new ImmutablePair<>(realHitPositionOptional.get(), SchematicUtil.HitPositionWorld.TIE);
-        }
-        if (squaredDistanceToRealHitPosition == impossiblyFarSquaredDistance &&
-            squaredDistanceToSchematicHitPosition == impossiblyFarSquaredDistance)
-        {
-            return new ImmutablePair<>(null, SchematicUtil.HitPositionWorld.NONE);
-        }
-        if (squaredDistanceToRealHitPosition < squaredDistanceToSchematicHitPosition)
-        {
-            return new ImmutablePair<>(realHitPositionOptional.get(), SchematicUtil.HitPositionWorld.REAL);
-        }
-        MovingObjectPosition schematicHitPosition = schematicHitPositionOptional.get();
-        schematicHitPosition.blockPos = schematicHitPosition.blockPos.add(schematicWorldPosition);
-        schematicHitPosition.hitVec
-            = schematicHitPosition.hitVec.addVector(schematicWorldPosition.getX(), schematicWorldPosition.getY(), schematicWorldPosition.getZ());
-        return new ImmutablePair<>(schematicHitPosition, SchematicUtil.HitPositionWorld.SCHEMATIC);
-    }
-
-    private boolean rayTraceHitBlock(MovingObjectPosition hitPosition)
-    {
-        return hitPosition != null && hitPosition.typeOfHit.equals(MovingObjectPosition.MovingObjectType.BLOCK);
-    }
-
-    private Optional<MovingObjectPosition> schematicRayTraceBlocks(SchematicWorld schematicWorld, Vec3 start, Vec3 end)
-    {
-        return this.schematicRayTraceBlocks(schematicWorld, start, end, false, false, true);
-    }
-
-    private Optional<MovingObjectPosition> schematicRayTraceBlocks(SchematicWorld schematicWorld, Vec3 start, Vec3 end,
-                                                                   boolean stopOnLiquid,
-                                                                   boolean ignoreBlockWithoutBoundingBox,
-                                                                   boolean returnLastUncollidableBlock)
-    {
-        if (!schematicWorld.isRendering)
-        {
-            return Optional.empty();
-        }
-        Vec3 schematicWorldPositionVec = VecUtil.fromVec3i(schematicWorld.position);
-        start = start.subtract(schematicWorldPositionVec);
-        end = end.subtract(schematicWorldPositionVec);
-        return Optional.ofNullable(schematicWorld.rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock));
-    }
-
-    private Optional<MovingObjectPosition> realRayTraceBlocks(WorldClient realWorld, Vec3 start, Vec3 end)
-    {
-        return this.realRayTraceBlocks(realWorld, start, end, false, false, true);
-    }
-
-    private Optional<MovingObjectPosition> realRayTraceBlocks(WorldClient realWorld, Vec3 start, Vec3 end,
-                                                              boolean stopOnLiquid,
-                                                              boolean ignoreBlockWithoutBoundingBox,
-                                                              boolean returnLastUncollidableBlock)
-    {
-        return Optional.ofNullable(realWorld.rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock));
     }
 
     private void resetMoveCounter()
@@ -352,7 +272,7 @@ public class SchematicMovement
                 return false;
             }
             Pair<MovingObjectPosition, SchematicUtil.HitPositionWorld> hitPositionPair
-                = this.rayTraceBlocks(realWorld, schematicWorld, player);
+                = SchematicUtil.rayTraceBlocks(realWorld, schematicWorld, player, this.rayTraceDistance);
             MovingObjectPosition hitPosition = hitPositionPair.getLeft();
             SchematicUtil.HitPositionWorld hitPositionWorld = hitPositionPair.getRight();
             if (!hitPositionWorld.inSchematicWorld())
@@ -371,7 +291,7 @@ public class SchematicMovement
         if (!this.isSchematicTethered)
         {
             Pair<MovingObjectPosition, SchematicUtil.HitPositionWorld> hitPositionPair
-                = this.rayTraceBlocks(realWorld, schematicWorld, player);
+                = SchematicUtil.rayTraceBlocks(realWorld, schematicWorld, player, this.rayTraceDistance);
             MovingObjectPosition hitPosition = hitPositionPair.getLeft();
             SchematicUtil.HitPositionWorld hitPositionWorld = hitPositionPair.getRight();
             if (this.schematicAnchor2BlockPos == null && hitPositionWorld.inSchematicWorld())
@@ -473,7 +393,7 @@ public class SchematicMovement
                 return;
             }
             Pair<MovingObjectPosition, SchematicUtil.HitPositionWorld> hitPositionPair
-                = this.rayTraceBlocks(realWorld, schematicWorld, player);
+                = SchematicUtil.rayTraceBlocks(realWorld, schematicWorld, player, this.rayTraceDistance);
             MovingObjectPosition hitPosition = hitPositionPair.getLeft();
             SchematicUtil.HitPositionWorld hitPositionWorld = hitPositionPair.getRight();
             if (!hitPositionWorld.inSchematicWorld())
@@ -497,7 +417,7 @@ public class SchematicMovement
         Stream.of(this.realAnchor1BlockPos).filter(Objects::nonNull)
             .forEach(blockPos -> RenderUtil.provideBlockOutlines(lineConsumer, blockPos, .6, Color4f.WHITE));
         Pair<MovingObjectPosition, SchematicUtil.HitPositionWorld> hitPositionPair
-            = this.rayTraceBlocks(realWorld, schematicWorld, player);
+            = SchematicUtil.rayTraceBlocks(realWorld, schematicWorld, player, this.rayTraceDistance);
         MovingObjectPosition hitPosition = hitPositionPair.getLeft();
         SchematicUtil.HitPositionWorld hitPositionWorld = hitPositionPair.getRight();
         if (hitPositionWorld.equals(SchematicUtil.HitPositionWorld.NONE) ||
@@ -597,7 +517,8 @@ public class SchematicMovement
                 Vec3 reach = eyes.addVector(
                     look.xCoord * this.rayTraceDistance,
                     look.yCoord * this.rayTraceDistance, look.zCoord * this.rayTraceDistance);
-                Optional<MovingObjectPosition> hitPositionOptional = this.realRayTraceBlocks(realWorld, eyes, reach);
+                Optional<MovingObjectPosition> hitPositionOptional
+                    = MinecraftUtil.rayTraceBlocks(realWorld, eyes, reach);
                 if (!hitPositionOptional.isPresent())
                 {
                     break notAltHeld;
