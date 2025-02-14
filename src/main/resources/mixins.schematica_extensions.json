@@ -5,6 +5,8 @@
   "refmap": "mixins.schematica_extensions.refmap.json",
   "compatibilityLevel": "JAVA_8",
   "client": [
+    "MinecraftMixin",
+    "WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
