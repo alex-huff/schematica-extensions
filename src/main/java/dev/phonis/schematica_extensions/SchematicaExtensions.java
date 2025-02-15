@@ -16,7 +16,7 @@ public class SchematicaExtensions
 
     public static final String GUI_FACTORY = "dev.phonis.schematica_extensions.config.SchematicaExtensionsGuiFactory";
     public static final String MODID = "schematica_extensions";
-    public static final String VERSION = "0.0.4";
+    public static final String VERSION = "0.0.5";
 
     @EventHandler
     public void init(FMLPreInitializationEvent event)

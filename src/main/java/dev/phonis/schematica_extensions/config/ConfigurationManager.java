@@ -21,8 +21,8 @@ public class ConfigurationManager
 
     private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT = new String[]{
         "sh", "-c",
-        "schematic_directory_path=$(realpath \"$1\") && chosen_schematic_name=$(find \"$schematic_directory_path\" -type f -name \"*.schematic\" | xargs -d \"\\n\" realpath --relative-to \"$schematic_directory_path\" | sed \"s/\\(.*\\)\\.schematic$/\\1/\" | rofi -dmenu -i -theme-str \"#window { width: 500; }\") && echo \"${schematic_directory_path}/${chosen_schematic_name}.schematic\"",
-        "_", "{directory}"
+        "chosen_schematic_name=$(find \"$1\" -type f -name \"*.schematic\" | xargs -d \"\\n\" realpath --relative-to \"$1\" | sed \"s/\\.schematic$//\" | rofi -dmenu -i -theme-str \"#window { width: 500; }\") && echo \"${1}/${chosen_schematic_name}.schematic\"",
+        "_", "{schematic_directory}"
     };
     private final static int SCHEMATIC_MOVE_LARGE_INCREMENT_DEFAULT = 25;
     private final static int SCHEMATIC_MOVE_REFRESH_DELAY_DEFAULT = 1000;
@@ -47,7 +47,7 @@ public class ConfigurationManager
         this.configuration = new Configuration(configFile, ConfigurationManager.VERSION);
 
         this.schematicCustomLoadCommandProperty
-            = this.configuration.get("Loading", "Custom Schematic Load Command", ConfigurationManager.SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT, "A custom command/arguments for choosing a schematic to load. '{directory}' is replaced with the full path to the current schematic directory for each argument. The STDOUT of the process is expected to be the full path to the chosen file.");
+            = this.configuration.get("Loading", "Custom Schematic Load Command", ConfigurationManager.SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT, "Command (and arguments) to use for selecting a schematic to load. The command should write the selected schematic path to the choice file or STDOUT.\nThe following placeholders are defined:\n'{schematic_directory}': The path to the schematics directory.\n'{choice_file}': The path to the choice file. If nothing is written to this file, the STDOUT of the spawned process will be used instead for acquiring the selected schematic path.");
         ConfigCategory loadingCategory = new ConfigCategory("Loading");
         loadingCategory.put("Custom Schematic Load Command", this.schematicCustomLoadCommandProperty);
         this.configCategoryList.add(new ConfigElement(loadingCategory));
