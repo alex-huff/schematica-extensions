@@ -5,13 +5,16 @@ import com.github.lunatrius.schematica.proxy.ClientProxy;
 import dev.phonis.schematica_extensions.config.ConfigurationManager;
 import dev.phonis.schematica_extensions.util.MinecraftUtil;
 import net.minecraft.client.Minecraft;
+import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.BOMInputStream;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 
@@ -29,9 +32,10 @@ public class CustomSchematicLoad
         {
             try
             {
+                File schematicDirectoryFile = Schematica.proxy.getPlayerSchematicDirectory(null, true);
                 File tempFile = File.createTempFile("schematica-extensions", null);
                 tempFile.deleteOnExit();
-                String[] command = this.getCommand(tempFile.getPath());
+                String[] command = this.getCommand(schematicDirectoryFile, tempFile.getPath());
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
                 Process process = processBuilder.start();
                 int exitCode = process.waitFor();
@@ -40,11 +44,27 @@ public class CustomSchematicLoad
                     this.showErrorMessage("chooser program exited with non-zero exit code " + exitCode);
                     return;
                 }
-                Optional<String> schematicPathOptional = Files.readAllLines(tempFile.toPath(), Charsets.UTF_8).stream()
-                    .map(this::removeLineTerminators).filter(path -> !path.isEmpty()).findFirst();
-                String schematicPath = schematicPathOptional.isPresent() ? schematicPathOptional.get()
-                                                                         : this.removeLineTerminators(IOUtils.toString(process.getInputStream(), Charsets.UTF_8));
-                File schematicFile = new File(schematicPath);
+                List<String> choiceFileLines = new ArrayList<>();
+                try (FileInputStream choiceFileInputStream = new FileInputStream(tempFile))
+                {
+                    BOMInputStream bomInputStream
+                        = new BOMInputStream(choiceFileInputStream, ByteOrderMark.UTF_8, ByteOrderMark.UTF_16BE, ByteOrderMark.UTF_16LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_32LE);
+                    String charsetName = bomInputStream.hasBOM() ? bomInputStream.getBOMCharsetName()
+                                                                 : ByteOrderMark.UTF_8.getCharsetName();
+                    BufferedReader choiceFileReader
+                        = new BufferedReader(new InputStreamReader(bomInputStream, Charset.forName(charsetName)));
+                    String currentLine = choiceFileReader.readLine();
+                    while (currentLine != null)
+                    {
+                        choiceFileLines.add(currentLine);
+                        currentLine = choiceFileReader.readLine();
+                    }
+                }
+                Optional<String> schematicPathOptional = choiceFileLines.stream().filter(path -> !path.isEmpty())
+                    .findFirst();
+                String schematicPathString = schematicPathOptional.isPresent() ? schematicPathOptional.get()
+                                                                               : this.removeLineTerminators(IOUtils.toString(process.getInputStream(), Charsets.UTF_8));
+                File schematicFile = new File(schematicPathString);
                 this.minecraft.addScheduledTask(() ->
                 {
                     if (!this.tryLoadSchematic(schematicFile))
@@ -65,9 +85,8 @@ public class CustomSchematicLoad
         return input.replaceAll("[\\r\\n]", "");
     }
 
-    private String[] getCommand(String choiceFilePath)
+    private String[] getCommand(File schematicDirectoryFile, String choiceFilePath)
     {
-        File schematicDirectoryFile = Schematica.proxy.getPlayerSchematicDirectory(null, true);
         return Arrays.stream(ConfigurationManager.INSTANCE.schematicCustomLoadCommand)
             .map(argument -> this.processArgument(argument, schematicDirectoryFile, choiceFilePath))
             .toArray(String[]::new);
@@ -75,7 +94,7 @@ public class CustomSchematicLoad
 
     private String processArgument(String argument, File schematicDirectory, String choiceFilePath)
     {
-        return argument.replace("{schematic_directory}", schematicDirectory.getAbsolutePath())
+        return argument.replace("{schematics_directory}", schematicDirectory.getAbsolutePath())
             .replace("{choice_file}", choiceFilePath);
     }
 

@@ -8,6 +8,7 @@ import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.config.IConfigElement;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -19,10 +20,15 @@ public class ConfigurationManager
     public static final ConfigurationManager INSTANCE = new ConfigurationManager();
     public static final String VERSION = "1";
 
-    private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT = new String[]{
+    private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_WINDOWS_DEFAULT = new String[]{
+        "C:\\Program Files\\WezTerm\\wezterm-gui.exe", "start", "PowerShell.exe", "-Command",
+        "& {$schematics_directory=$args[0]; $choice_file=$args[1]; cd $schematics_directory; echo $schematics_directory\\$(fzf) > $choice_file}",
+        "{schematics_directory}", "{choice_file}"
+    };
+    private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_OTHER_DEFAULT = new String[]{
         "sh", "-c",
         "chosen_schematic_name=$(find \"$1\" -type f -name \"*.schematic\" | xargs -d \"\\n\" realpath --relative-to \"$1\" | sed \"s/\\.schematic$//\" | rofi -dmenu -i -theme-str \"#window { width: 500; }\") && echo \"${1}/${chosen_schematic_name}.schematic\"",
-        "_", "{schematic_directory}"
+        "_", "{schematics_directory}"
     };
     private final static int SCHEMATIC_MOVE_LARGE_INCREMENT_DEFAULT = 25;
     private final static int SCHEMATIC_MOVE_REFRESH_DELAY_DEFAULT = 1000;
@@ -30,13 +36,19 @@ public class ConfigurationManager
     public Configuration configuration;
     public List<IConfigElement> configCategoryList = new ArrayList<>();
 
-    public String[] schematicCustomLoadCommand = ConfigurationManager.SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT;
+    public String[] schematicCustomLoadCommand = ConfigurationManager.getSchematicCustomLoadCommandDefault();
     public int schematicMoveLargeIncrement = ConfigurationManager.SCHEMATIC_MOVE_LARGE_INCREMENT_DEFAULT;
     public int schematicMoveRefreshDelay = ConfigurationManager.SCHEMATIC_MOVE_REFRESH_DELAY_DEFAULT;
 
     private Property schematicCustomLoadCommandProperty;
     private Property schematicMoveLargeIncrementProperty;
     private Property schematicMoveRefreshDelayProperty;
+
+    private static String[] getSchematicCustomLoadCommandDefault()
+    {
+        return SystemUtils.IS_OS_WINDOWS ? ConfigurationManager.SCHEMATIC_CUSTOM_LOAD_COMMAND_WINDOWS_DEFAULT
+                                         : ConfigurationManager.SCHEMATIC_CUSTOM_LOAD_COMMAND_OTHER_DEFAULT;
+    }
 
     public void init(File configFile)
     {
@@ -47,7 +59,7 @@ public class ConfigurationManager
         this.configuration = new Configuration(configFile, ConfigurationManager.VERSION);
 
         this.schematicCustomLoadCommandProperty
-            = this.configuration.get("Loading", "Custom Schematic Load Command", ConfigurationManager.SCHEMATIC_CUSTOM_LOAD_COMMAND_DEFAULT, "Command (and arguments) to use for selecting a schematic to load. The command should write the selected schematic path to the choice file or STDOUT.\nThe following placeholders are defined:\n'{schematic_directory}': The path to the schematics directory.\n'{choice_file}': The path to the choice file. If nothing is written to this file, the STDOUT of the spawned process will be used instead for acquiring the selected schematic path.");
+            = this.configuration.get("Loading", "Custom Schematic Load Command", ConfigurationManager.getSchematicCustomLoadCommandDefault(), "Command (and arguments) to use for selecting a schematic to load. The command should write the selected schematic path to the choice file or STDOUT.\nThe following placeholders are defined:\n'{schematics_directory}': The path to the schematics directory.\n'{choice_file}': The path to the choice file. If nothing is written to this file, the STDOUT of the spawned process will be used instead for acquiring the selected schematic path.");
         ConfigCategory loadingCategory = new ConfigCategory("Loading");
         loadingCategory.put("Custom Schematic Load Command", this.schematicCustomLoadCommandProperty);
         this.configCategoryList.add(new ConfigElement(loadingCategory));
