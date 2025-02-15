@@ -28,6 +28,6 @@ SchematicaExtensions is a Minecraft 1.8.9 Forge mod that adds various features t
         https://github.com/user-attachments/assets/4a9c9d57-4689-419d-808a-c9c7b79ec4e8
 
 * ### Custom Load Command
-    Quickly choose a schematic to load using an external command of your choice. You can configure the command used in the Mod Options menu. The default Windows command uses [WezTerm](https://wezterm.org/) and [fzf](https://junegunn.github.io/fzf/). The default command for other platforms uses [rofi](https://github.com/davatorium/rofi) as shown in the video below.
+    Quickly choose a schematic to load using an external command of your choice. You can configure the command used in the Mod Options menu. The default Windows command uses [WezTerm](https://wezterm.org/) and [fzf](https://junegunn.github.io/fzf/). The default command for other platforms uses [rofi](https://davatorium.github.io/rofi/) as shown in the video below.
 
     https://github.com/user-attachments/assets/2b87bcc1-bed1-48ba-9224-41d7a1cb974f
