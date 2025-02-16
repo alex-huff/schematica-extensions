@@ -21,9 +21,8 @@ public class ConfigurationManager
     public static final String VERSION = "1";
 
     private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_WINDOWS_DEFAULT = new String[]{
-        "C:\\Program Files\\WezTerm\\wezterm-gui.exe", "start", "PowerShell.exe", "-Command",
-        "& {$schematics_directory=$args[0]; $choice_file=$args[1]; cd $schematics_directory; echo $schematics_directory\\$(fzf) > $choice_file}",
-        "{schematics_directory}", "{choice_file}"
+        "alacritty.exe", "--option", "window.startup_mode='Fullscreen'", "--command", "PowerShell.exe", "-Command",
+        "& {$dir=$args[0]; cd $dir; echo $dir\\$(fzf) > $args[1]}", "{schematics_directory}", "{choice_file}"
     };
     private final static String[] SCHEMATIC_CUSTOM_LOAD_COMMAND_OTHER_DEFAULT = new String[]{
         "sh", "-c",
